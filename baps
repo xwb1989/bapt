@@ -111,6 +111,7 @@ function usage_info {
 }
 #========================================== Argument validation ===========
 
+INFO "============================   Argument Validation   ==============================\n"
 
 #Welcome message 
 expected_argc=6
@@ -156,6 +157,10 @@ elif [[ $1 == "-d" ]]; then
     fi
 fi
 
+INFO "==========================   Argument Validation Done   ===============================\n"
+
+INFO "==========================   MOSS Files Preparation   =================================\n"
+INFO "--------------------------   Unpacking and Extracting Files ---------------------------\n"
 if [[ $source_dir != "" ]]; then
     INFO "unpacking archives in $source_dir to corresponding directories.\n"
     unpack_all $source_dir  #unpack all archives and remove spaces in their names
@@ -164,4 +169,24 @@ if [[ $source_dir != "" ]]; then
     extract_files $source_dir java
 fi
 
-INFO "MOSS preprocessing done.\n"
+INFO "--------------------------   Unpacking and Extracting done ----------------------------\n"
+INFO "\n"
+INFO "--------------------------   Configuring Base Files -----------------------------------\n"
+
+if [[ $5 == "-b" ]]; then
+    base_files_dir=$6
+    base_files=""
+    for file in $base_files_dir/*; do 
+        base_files="-b $file $base_files"
+    done
+    INFO "base_files: $base_files\n"
+fi
+
+INFO "--------------------------   Configuring Base Files done ------------------------------\n"
+
+INFO "==========================   MOSS Files Preparation done   ============================\n"
+INFO "==========================   Submitting files to MOSS   ===============================\n"
+INFO "./moss -l $4 $base_files -d $2/*/*.$4\n"
+./moss -l $4 $base_files -d $2/*/*.$4
+
+INFO "==========================   Done =====================================================\n"

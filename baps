@@ -1,8 +1,18 @@
 #!/bin/bash
 
-#This file will extract java files from $1 and copy them into $2
+#(B)randeis (A)nti-(P)lagiarism (S)uite
 #Author: Wenbin
 #Date: 2014/10/06
+
+
+#usage:
+# 1) Given URLs in source_config, download files from Latte, unpack then upload to MOSS
+#baps -f source_config -l java
+# 2) By specifying directory, upload files in that directory to MOSS
+#baps -d source_directory -l java
+
+# -l is for specifying lanaguage, now it only supports Java.
+
 
 #========================================== Utils =========================
 function INFO {
@@ -15,54 +25,140 @@ function WARN {
 
 function ERRO {
     printf "$(tput setaf 1)ERRO $1$(tput sgr 0)" 
+    exit
 }
 
-#========================================== Argument validation ===========
+function validate_directory {
+    if [ -d $1 ]; then
+        return 0
+    else
+        ERRO "Invalid directory: $1\n"
+        return 1
+    fi
+}
 
-INFO "this file will extract java files recursively.\n"
-expected_argc=2
-if [ $# -ne $expected_argc ]; then
-    ERRO "invalid argument. Usage: extract_java source target\n"
-    exit
-fi
-INFO "checking existence of input directory $1\n"
-if [ ! -d $1 ]; then
-    ERRO "invalid src directory\n"
-    exit
-fi
-INFO "checking output directory $2\n"
-overwrite=false
-if [ -d $2 ]; then
-    WARN "directory $2 already exists, would you like to overwrite $2? (y or n): "
-    while read line; do
-        if [ $line == "y" ]; then
-            INFO "overwriting $2\n"
-            rm -rf $2
-            overwrite=true
-            break
-        elif [ $line == "n" ]; then
-            INFO "files in $2 will be kept.\n"
-            break
-        else
-            WARN "please enter y or n: "
+function validate_source_config {
+    if [ -f $1 ]; then
+        return true
+    else
+        ERRO "Invalid file: $1\n"
+        return false
+    fi
+}
+
+#usage: extract_files source target lang
+function extract_files {
+    for file in $1; do
+        if [[ -d $file ]]; then
+            extract_files $1/$file $2
+        elif [[ -f $file ]]; then
+            if [[ $file == *.$(3) ]]; then
+                mv $1/$file $2
+            fi
         fi
     done
-else
-    overwrite=true
-    INFO "directory $2 does not exist, we are creating one\n"
+}
+
+#usage: unpack_all dir
+function unpack_all {
+    for file in $1/*; do
+        INFO "$file\n"
+        if [[ "$file" =~ .*.(zip)|(tar.gz) ]]; then
+            dir=${file%%.*} ##pattern matching: trim the longest match from the end
+            INFO "making directory $dir\n"
+            rm -rf "$dir"
+            if `mkdir "$dir"`; then
+                INFO "making directory $dir succeeded.\n"
+            else
+                ERRO "failed to make directory $dir\n"
+            fi
+            INFO "extracting files in "$file" to "$dir""
+            if [[ `tar xf "$file" -C "$dir"` -eq 0 ]]; then
+                INFO "extracting succeeded, remove the archive.\n"
+                if `rm -rf "$file"`; then
+                    INFO "removing $file succeeded.\n"
+                else
+                    WARN "failed to remove $file.\n"
+                fi
+            else
+                WARN "failed to extract $file to $dir\n"
+            fi
+            echo
+        elif [[ ! -d "$file" ]]; then
+            WARN "non-archive file found: $file\n"
+        fi
+    done
+}
+
+function usage_info {
+    printf "USAGE:\n"
+    printf "\t1) By giving URLs in source_config, BAPS will download files from URLs and unpack them properly\n"
+    printf "\t\tbaps -f source_config -l java [-b base_files]\n\n"
+    printf "\t2) By specifying directory, BAPS will unpack archives in the directory properly\n"
+    printf "\t\tbaps -d source_directory -l java [-b base_files]\n\n"
+    printf "\t-l is for specifying the language, currently only Java is supported.\n"
+    printf "\t-b is optional, if it's set, files in the directory base_files will be uploaded as base files.\n"
+}
+#========================================== Argument validation ===========
+
+
+#Welcome message 
+expected_argc=6
+if [[ $# -ne $expected_argc && $# -ne $((expected_argc-2)) ]]; then
+    printf "Welcome to (B)randeis (A)nti-(P)lagiarism (S)uite.\n"
+    printf "This tool is using MOSS from Stanford as plagiarism detection engine and adapted by Wenbin Xiao\n"
+    printf "to automatically preprocess students assigments, set up configurations and submit required files to MOSS.\n" 
+    printf "\n"
+    usage_info
+    exit
 fi
 
-if [ $overwrite == true ]; then
-    mkdir $2
-    if [ $? -eq 0 ]; then
-        INFO "successfully created $2\n"
-    else
-        ERRO "fail to create directory $2\n"
-        exit
+#Validate -f, -d and -l
+if [[ ($1 != "-f" && $1 != "-d") || $3 != "-l" || ($# -eq $expected_argc && $5 != "-b") ]]; then
+    ERRO "unable to identify flags $1 or $3 or $5\n"
+fi
+
+#Validate language Java
+if [[ $4 != "java" ]]; then
+    ERRO "invalid language: $4\n"
+fi
+
+#Validate base files directory
+base_files=""
+if [[ $# -eq $expected_argc ]] && validate_directory $6; then
+    base_files=$6
+fi
+
+source_from_config=false
+source_dir=""
+if [[ $1 == "-f" ]]; then
+    INFO "checking source_config file: $2\n"
+    ERRO "flag -f is currently unavalable\n"
+    if validate_source_config $2; then
+        INFO "$2 exists.\n"
+        source_config=true
+    fi
+elif [[ $1 == "-d" ]]; then
+    INFO "checking source_directory: $2\n"
+    if validate_directory $2; then
+        INFO "$2 exists.\n"
+        source_dir=$2
     fi
 fi
 
-INFO "copying java files from $1 to $2.\n"
+if [[ $source_dir != "" ]]; then
+    INFO "unpacking archives in $source_dir to corresponding directories.\n"
+    unpack_all $source_dir
 
+    INFO "recursively extracting all $4 files in $source_dir to their corresponding directories.\n"
+    for dir in $source_dir/*; do
+        if [[ -d $dir ]]; then
+            INFO "recursively extracting $4 files in $source_dir/$dir to $source_dir/$dir.\n"
+            extract_files $source_dir/$dir $source_dir/$dir
+        else
+            WARN "non-directory file found: $dir\n"
+        fi
+    done
+fi
 
-
+INFO "MOSS preprocessing done.\n"

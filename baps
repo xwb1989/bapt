@@ -78,7 +78,7 @@ function unpack_all {
             mv -f "$file" "$f"
         fi
         #unpack archives
-        if [[ "$f" =~ .*.(zip)|(tar.gz)|(tgz) ]]; then
+        if [[ "$f" =~ .*.(zip)|(tar.gz)|(tgz)|(tar) ]]; then
             dir="${f%%.*}" #pattern matching: trim the longest match from the end
             INFO "makeing directory $dir\n"
             mkdir "$dir"

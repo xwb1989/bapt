@@ -186,7 +186,7 @@ INFO "--------------------------   Configuring Base Files done -----------------
 
 INFO "==========================   MOSS Files Preparation done   ============================\n"
 INFO "==========================   Submitting files to MOSS   ===============================\n"
-INFO "./moss -l $4 $base_files -d $2/*/*.$4\n"
+INFO "./moss -l $4 $base_files -x -d $2/*/*.$4\n"
 ./moss -l $4 $base_files -d $2/*/*.$4
 
 INFO "==========================   Done =====================================================\n"

@@ -46,46 +46,56 @@ function validate_source_config {
     fi
 }
 
-#usage: extract_files source target lang
+#recursion in bash is unsafe
+#usage: extract_files source lang
 function extract_files {
-    for file in $1; do
-        if [[ -d $file ]]; then
-            extract_files $1/$file $2
-        elif [[ -f $file ]]; then
-            if [[ $file == *.$(3) ]]; then
-                mv $1/$file $2
+    for dir in $1/*; do
+        INFO "extracting $2 files in $dir\n"
+        for file in `find $dir -name *.$2`; do
+            if [[ ! $file =~ .*MACOSX.* && $dir != ${file%/*} ]]; then
+                mv -f $file $dir
+                if [[ $? -ne 0 ]]; then
+                    ERRO "fail to move file $file to $dir\n"
+                fi
             fi
-        fi
+        done
+        INFO "cleaning directories in $dir\n"
+        for del in $dir/*; do
+            if [[ -d $del ]]; then
+                rm -rf $del
+            fi
+        done
     done
 }
 
 #usage: unpack_all dir
+#dir should be without spaces
 function unpack_all {
     for file in $1/*; do
-        INFO "$file\n"
-        if [[ "$file" =~ .*.(zip)|(tar.gz) ]]; then
-            dir=${file%%.*} ##pattern matching: trim the longest match from the end
-            INFO "making directory $dir\n"
-            rm -rf "$dir"
-            if `mkdir "$dir"`; then
-                INFO "making directory $dir succeeded.\n"
-            else
+        #remove spaces in file name
+        f="${file// /_}"
+        if [[ $f != $file ]]; then
+            mv -f "$file" "$f"
+        fi
+        #unpack archives
+        if [[ "$f" =~ .*.(zip)|(tar.gz) ]]; then
+            dir="${f%%.*}" #pattern matching: trim the longest match from the end
+            INFO "makeing directory $dir\n"
+            mkdir "$dir"
+            if [ $? -ne 0 ]; then
                 ERRO "failed to make directory $dir\n"
             fi
-            INFO "extracting files in "$file" to "$dir""
-            if [[ `tar xf "$file" -C "$dir"` -eq 0 ]]; then
-                INFO "extracting succeeded, remove the archive.\n"
-                if `rm -rf "$file"`; then
-                    INFO "removing $file succeeded.\n"
-                else
-                    WARN "failed to remove $file.\n"
-                fi
-            else
-                WARN "failed to extract $file to $dir\n"
+            INFO "extracting files in "$f""
+            #unpack
+            tar xf "$f" -C "$dir"
+            if [[ $? -eq 0 ]]; then
+                INFO "extraction succeeded, now removing the archive.\n"
+                rm -f "$f"
+                #recursively unpack
+                unpack_all "$dir"
             fi
-            echo
-        elif [[ ! -d "$file" ]]; then
-            WARN "non-archive file found: $file\n"
+        elif [[ -d "$f" ]]; then 
+            unpack_all "$f"
         fi
     done
 }
@@ -148,17 +158,10 @@ fi
 
 if [[ $source_dir != "" ]]; then
     INFO "unpacking archives in $source_dir to corresponding directories.\n"
-    unpack_all $source_dir
+    unpack_all $source_dir  #unpack all archives and remove spaces in their names
 
     INFO "recursively extracting all $4 files in $source_dir to their corresponding directories.\n"
-    for dir in $source_dir/*; do
-        if [[ -d $dir ]]; then
-            INFO "recursively extracting $4 files in $source_dir/$dir to $source_dir/$dir.\n"
-            extract_files $source_dir/$dir $source_dir/$dir
-        else
-            WARN "non-directory file found: $dir\n"
-        fi
-    done
+    extract_files $source_dir java
 fi
 
 INFO "MOSS preprocessing done.\n"

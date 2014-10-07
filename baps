@@ -1,0 +1,68 @@
+#!/bin/bash
+
+#This file will extract java files from $1 and copy them into $2
+#Author: Wenbin
+#Date: 2014/10/06
+
+#========================================== Utils =========================
+function INFO {
+    printf "$(tput setaf 2)INFO $1$(tput sgr 0)"
+}
+
+function WARN {
+    printf "$(tput setaf 3)WARN $1$(tput sgr 0)"
+}
+
+function ERRO {
+    printf "$(tput setaf 1)ERRO $1$(tput sgr 0)" 
+}
+
+#========================================== Argument validation ===========
+
+INFO "this file will extract java files recursively.\n"
+expected_argc=2
+if [ $# -ne $expected_argc ]; then
+    ERRO "invalid argument. Usage: extract_java source target\n"
+    exit
+fi
+INFO "checking existence of input directory $1\n"
+if [ ! -d $1 ]; then
+    ERRO "invalid src directory\n"
+    exit
+fi
+INFO "checking output directory $2\n"
+overwrite=false
+if [ -d $2 ]; then
+    WARN "directory $2 already exists, would you like to overwrite $2? (y or n): "
+    while read line; do
+        if [ $line == "y" ]; then
+            INFO "overwriting $2\n"
+            rm -rf $2
+            overwrite=true
+            break
+        elif [ $line == "n" ]; then
+            INFO "files in $2 will be kept.\n"
+            break
+        else
+            WARN "please enter y or n: "
+        fi
+    done
+else
+    overwrite=true
+    INFO "directory $2 does not exist, we are creating one\n"
+fi
+
+if [ $overwrite == true ]; then
+    mkdir $2
+    if [ $? -eq 0 ]; then
+        INFO "successfully created $2\n"
+    else
+        ERRO "fail to create directory $2\n"
+        exit
+    fi
+fi
+
+INFO "copying java files from $1 to $2.\n"
+
+
+

@@ -9,6 +9,7 @@ import zipfile
 import tarfile
 import os
 import argparse
+from cStringIO import StringIO
 
 
 #========================================  Config ======================================
@@ -30,17 +31,17 @@ class bcolors:
         self.FAIL = ''
         self.ENDC = ''
 
-def INFO(str):
-    print(bcolors.HEADER + str + bcolors.ENDC)
+def INFO(string):
+    print(bcolors.HEADER + str(string) + bcolors.ENDC)
 
-def OK(str):
-    print(bcolors.OKGREEN + str + bcolors.ENDC)
+def OK(string):
+    print(bcolors.OKGREEN + str(string) + bcolors.ENDC)
 
-def WARN(str):
-    print(bcolors.WARNING + str + bcolors.ENDC)
+def WARN(string):
+    print(bcolors.WARNING + str(string) + bcolors.ENDC)
 
-def ERRO(str):
-    print(bcolors.FAIL + str + bcolors.ENDC)
+def ERRO(string):
+    print(bcolors.FAIL + str(string) + bcolors.ENDC)
     sys.exit(1)
 
 def welcome():
@@ -52,19 +53,71 @@ def welcome():
     print("If you have any question about this tool, please email the author:")
     print("\t\tWenbin Xiao(wenbinx@brandeis.edu)")
 
+#identify archive by extension
+def is_archive(f):
+    return f.endswith(("tar", "zip", "tgz", "tar.gz"))
+
+#identify zip by extension
+def is_zip(f):
+    return f.endswith("zip")
+
+#identify zip by extension
+def is_tar(f):
+    return f.endswith(("tgz", "tar", "tar.gz"))
+
+def match(s1, l1):
+    for s2 in l1:
+        if s2 in s1:
+            return True
+    return False
     
-def unextract_all(file_path, dest_path, file_types, ignore_list):
-    if tarfile.is_tarfile(file_path):
-        tar_ref = tarfile.Open(file_path)
-        tar_ref.getmembers()
-    elif zipfile.is_zipfile(file_path):
-        zip_ref = zipfile.ZipFile(file_path)
-        zip_ref.infolist()
-        pass
+#extract files in in-memory archive data
+def extract_data(f_name, f_data, dest, file_type, ignore_list):
+    if is_zip(f_name):
+        #crate ZipFile by passing a file-like object
+        extract_zip(zipfile.ZipFile(f_data), dest, file_type, ignore_list)
+    elif is_tar(f_name):
+        #create TarFile by passing fileobj
+        extract_tar(tarfile.open(fileobj=f_data), dest, file_type, ignore_list)
+    else:
+        WARN("unable to identify %s" %(f_name))
+
+#recursively extract files in tar file
+def extract_tar(tar_file, dest, file_type, ignore_list):
+    for f_name in tar_file.getnames():
+        if match(f_name, ignore_list):
+            continue
+        elif f_name.endswith(tuple(file_type)):
+            #tar_file.extract(f_name, path=dest)
+            INFO(f_name)
+        elif is_archive(f_name):
+            WARN(f_name)
+            f_data = tar_file.extractfile(f_name)
+            extract_data(f_name, f_data, dest, file_type, ignore_list)
+
+#recursively extract files in zip file
+def extract_zip(zip_file, dest, file_type, ignore_list):
+    for f_name in zip_file.namelist():
+        if match(f_name, ignore_list):
+            continue
+        elif f_name.endswith(tuple(file_type)):
+            INFO(f_name)
+        elif is_archive(f_name):
+            WARN(f_name)
+            #result of read() is unseekable, we need to wrap it with StringIO
+            f_data = StringIO(zip_file.read(f_name)) 
+            extract_data(f_name, f_data, dest, file_type, ignore_list)
+
+def extract_all(file_path, dest_path, file_type, ignore_list):
+    if is_tar(file_path):
+        tar_file = tarfile.open(file_path)
+        extract_tar(tar_file, dest_path, file_type, ignore_list)
+    elif is_zip(file_path):
+        zip_file = zipfile.ZipFile(file_path)
+        extract_zip(zip_file, dest_path, file_type, ignore_list)
     else:
         WARN("Unable to identify the type of file: %s" % ( file_path ))
-    zip_ref = zipfile.ZipFile(file_path, 'r')
-    return true
+    return True
     
 #Validate the directories given by command line arguments
 class ValidDir(argparse.Action):
@@ -80,11 +133,12 @@ class ValidDir(argparse.Action):
         setattr(namespace, self.dest, values)
         
 
-#====================================== Main logic ====================================
+#====================================== Main ====================================
 if __name__ == "__main__":
 
-    welcome()
-    print
+    if len(sys.argv) < 4:
+        welcome()
+    INFO("====================================  Argument Parsing  =================================")
     #create argument parser
     parser = argparse.ArgumentParser(description="Parsing arguments for BAPT")
     #add arguments
@@ -102,6 +156,19 @@ if __name__ == "__main__":
     except Exception as e:
         WARN(" ".join(e.args))
         ERRO("Invalid command: %s" %(" ".join(sys.argv)))
+    INFO("====================================  Argument Parsing done  ============================")
+
+    for directory in args.directories:
+        for archive_file in [f for f in os.listdir(directory) if is_archive(f)]:
+            dest = os.path.join(directory, archive_file[:archive_file.find(".")])
+            file_path = os.path.join(directory, archive_file)
+            if not os.path.isdir(dest):
+                extract_all(file_path, dest, args.lang, ["__MACOSX"])
+            
+            
+
+         
+
     sys.exit(0)
 
 

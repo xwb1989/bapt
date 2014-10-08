@@ -9,6 +9,7 @@ import zipfile
 import tarfile
 import os
 import argparse
+import shutil
 from cStringIO import StringIO
 
 
@@ -88,8 +89,8 @@ def extract_tar(tar_file, dest, file_type, ignore_list):
         if match(f_name, ignore_list):
             continue
         elif f_name.endswith(tuple(file_type)):
-            #tar_file.extract(f_name, path=dest)
-            INFO(f_name)
+            tar_file.extract(f_name, path=dest)
+            OK(f_name)
         elif is_archive(f_name):
             WARN(f_name)
             f_data = tar_file.extractfile(f_name)
@@ -101,13 +102,15 @@ def extract_zip(zip_file, dest, file_type, ignore_list):
         if match(f_name, ignore_list):
             continue
         elif f_name.endswith(tuple(file_type)):
-            INFO(f_name)
+            zip_file.extract(f_name, path=dest)
+            OK(f_name)
         elif is_archive(f_name):
             WARN(f_name)
             #result of read() is unseekable, we need to wrap it with StringIO
             f_data = StringIO(zip_file.read(f_name)) 
             extract_data(f_name, f_data, dest, file_type, ignore_list)
 
+#given file_path, dest_path, extract file_type files to dest_path
 def extract_all(file_path, dest_path, file_type, ignore_list):
     if is_tar(file_path):
         tar_file = tarfile.open(file_path)
@@ -119,6 +122,19 @@ def extract_all(file_path, dest_path, file_type, ignore_list):
         WARN("Unable to identify the type of file: %s" % ( file_path ))
     return True
     
+
+#recursively move all files in dir_path's child directories to dir_path
+def shuffle_all(dir_path, target_path):
+    for p in os.listdir(dir_path):
+        if os.path.isdir(p):
+            shuffle_all(os.path.join(dir_path, p), target_path)
+            shutil.rmtree(os.path.join(dir_path,p))
+        elif os.path.isfile(p):
+            if dir_path == target_path:
+                continue
+            else:
+                shutil.move(os.path.join(dir_path,p), target_path)
+
 #Validate the directories given by command line arguments
 class ValidDir(argparse.Action):
     def __call__(self, parser, namespace, values, option_strings=None):
@@ -138,6 +154,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 4:
         welcome()
+
     INFO("====================================  Argument Parsing  =================================")
     #create argument parser
     parser = argparse.ArgumentParser(description="Parsing arguments for BAPT")
@@ -156,15 +173,22 @@ if __name__ == "__main__":
     except Exception as e:
         WARN(" ".join(e.args))
         ERRO("Invalid command: %s" %(" ".join(sys.argv)))
-    INFO("====================================  Argument Parsing done  ============================")
+    OK("====================================  Argument Parsing done  ============================")
 
+    INFO("====================================  Pre-processing Files ===========================")
     for directory in args.directories:
         for archive_file in [f for f in os.listdir(directory) if is_archive(f)]:
             dest = os.path.join(directory, archive_file[:archive_file.find(".")])
             file_path = os.path.join(directory, archive_file)
             if not os.path.isdir(dest):
+                INFO("------------------------  Extracting Files  --------------------------------")
                 extract_all(file_path, dest, args.lang, ["__MACOSX"])
+                OK("------------------------  Extracting done --------------------------------")
+                INFO("--------------------------Shuffling Files  ---------------------------------")
+                shuffle_all(dir_path)
+                OK("--------------------------Shuffling done ---------------------------------")
             
+    OK("====================================  Pre-processing done ============================")
             
 
          

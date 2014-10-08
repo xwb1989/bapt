@@ -1,7 +1,8 @@
 #(B)randeis (A)nti-(P)lagiarism (T)ool
 ##Introduction
-This tool is using MOSS from Standford University as plagiarsim detection engine and developed by Wenbin Xiao to automatically 
-unpack archive files(recursively if necessary), process test files and basefiles then submit to MOSS.
+This tool is using `MOSS` from Standford University as plagiarsim detection engine and developed by Wenbin Xiao to
+automatically unpack archive files(recursively if necessary), pre-process submissions then
+submit to MOSS with configuration.
 
 ##Prerequisite
 

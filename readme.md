@@ -7,7 +7,7 @@ unpack archive files(recursively if necessary), process test files and basefiles
 
 * Python 2.x
 * `moss` please go to MOSS [website](http://theory.stanford.edu/~aiken/moss/) to apply for the submission script 
-and follow the installation. When you have your `moss`, put it under the same directory of `baps`.
+and follow the installation. When you have your `moss`, put it under the same directory of `bapt`.
 
 ##Usage
 
@@ -19,6 +19,7 @@ and follow the installation. When you have your `moss`, put it under the same di
 
 ##How it works
 BAPT will go through directories specified by `-d` by two procedures:
+
     * If there is an archive file, it will create a directory based on the archive name, then extract files in the 
     archive to that directory; if will only extract files with extension specified by `-l` option. Extraction
     is recursive, it means files in sub-archives inside that archive will also been extracted.

@@ -19,11 +19,11 @@ and follow the installation. When you have your `moss`, put it under the same di
 * `-d` to specify the directories containing files or archives
 
 ##How it works
-BAPT will go through directories specified by `-d` with two procedures:
+BAPT will go through directories specified by `-d`:
 
-* If there is an archive file, it will create a directory based on the archive name, then extract files in the 
-archive to that directory; if will only extract files with extension specified by `-l` option. Extraction
-is recursive, it means files in sub-archives inside that archive will also been extracted.
+* If there is an archive file, it creates a directory based on the archive name, then extract files in the 
+archive to that directory; it only extracts files with extension specified by `-l` option. Extraction
+is recursive, it means files in sub-archives inside that archive will also be extracted.
 * If there is a directory, it will recursively "flatten" the directory such that all files in sub-directories will
 be moved out to the directory and then sub-directories will be removed.
 

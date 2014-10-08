@@ -10,6 +10,7 @@ import tarfile
 import os
 import argparse
 import shutil
+import subprocess
 from cStringIO import StringIO
 
 
@@ -126,14 +127,16 @@ def extract_all(file_path, dest_path, file_type, ignore_list):
 #recursively move all files in dir_path's child directories to dir_path
 def shuffle_all(dir_path, target_path):
     for p in os.listdir(dir_path):
-        if os.path.isdir(p):
-            shuffle_all(os.path.join(dir_path, p), target_path)
-            shutil.rmtree(os.path.join(dir_path,p))
-        elif os.path.isfile(p):
+        p_path = os.path.join(dir_path, p)
+        if os.path.isdir(p_path):
+            shuffle_all(p_path, target_path)
+            shutil.rmtree(p_path)
+        elif os.path.isfile(p_path):
             if dir_path == target_path:
                 continue
             else:
-                shutil.move(os.path.join(dir_path,p), target_path)
+                if not os.path.isfile(os.path.join(target_path, p)):
+                    shutil.move(p_path, target_path)
 
 #Validate the directories given by command line arguments
 class ValidDir(argparse.Action):
@@ -155,7 +158,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 4:
         welcome()
 
-    INFO("====================================  Argument Parsing  =================================")
     #create argument parser
     parser = argparse.ArgumentParser(description="Parsing arguments for BAPT")
     #add arguments
@@ -173,96 +175,53 @@ if __name__ == "__main__":
     except Exception as e:
         WARN(" ".join(e.args))
         ERRO("Invalid command: %s" %(" ".join(sys.argv)))
-    OK("====================================  Argument Parsing done  ============================")
+    #OK("moss %s %s %s" %())
 
-    INFO("====================================  Pre-processing Files ===========================")
+
+    #checking moss
+    if os.path.isfile("./moss"):
+        OK("moss found in current directory.")
+    else:
+        ERRO("cannot find moss in current directory.")
+
+    INFO("====================================  Pre-processing files ============================")
     for directory in args.directories:
         for archive_file in [f for f in os.listdir(directory) if is_archive(f)]:
             dest = os.path.join(directory, archive_file[:archive_file.find(".")])
             file_path = os.path.join(directory, archive_file)
             if not os.path.isdir(dest):
-                INFO("------------------------  Extracting Files  --------------------------------")
+                INFO("extracting files in %s" %(file_path))
                 extract_all(file_path, dest, args.lang, ["__MACOSX"])
-                OK("------------------------  Extracting done --------------------------------")
-                INFO("--------------------------Shuffling Files  ---------------------------------")
-                shuffle_all(dir_path)
-                OK("--------------------------Shuffling done ---------------------------------")
+                INFO("shuffling files in %s" %(dest))
+                shuffle_all(dest, dest)
             
     OK("====================================  Pre-processing done ============================")
             
+    INFO("=================================   Running MOSS  ===================================")
+    lang = " ".join(args.lang)
+    base_files_dir = "" if args.base_files == None else args.base_files
+    directories = " ".join(["%s/*/*.%s" %(d, lang) for d in args.directories])
+    moss = ""
+    if base_files_dir == "":
+        moss = "./moss -l %s -d %s" %(lang, directories) 
+    else:
+        moss = "./moss -l " + lang + " "
+        for f in os.listdir(base_files_dir):
+            p = os.path.join(base_files_dir, f)
+            moss += "-b " + p + " "
+        moss += "-d " + directories
+    INFO("Calling MOSS: ")
+    INFO("\t" + moss)
+    subprocess.call(moss, shell=True)
+
+
+
+
+    OK("===================================   BAPT Done  ======================================")
 
          
 
     sys.exit(0)
-
-
-
-    min_argc = 4
-
-
-
-    
-
-
-    #MOSS arguments
-    directories = ""
-    lang = ""
-    base_files = ""
-    i = 1
-    try:
-        while i < len(sys.argv):
-            arg = sys.argv[i]
-            if arg == "-l":
-                lang = "-l"
-                i += 1
-                tmp = sys.argv[i]
-                if tmp in SUPPORT_LANG:
-                    lang = lang + " " + tmp
-                else:
-                    raise Exception("Invalid language: %s" %(tmp))
-            elif arg == "-b":
-                base_files = "-b"
-                i += 1
-                tmp = sys.argv[i]
-                if os.path.isdir(tmp):
-                    base_files = base_files + " " + tmp
-                else:
-                    raise Exception("Invalid base file directory: %s" %(tmp))
-            elif arg == "-d":
-                directories = "-d"
-                i += 1
-                while i < len(sys.argv):
-                    tmp = sys.argv[i]
-                    if os.path.isdir(tmp):
-                        directories = directories + " " + tmp
-                    else:
-                        raise Exception("Invalid directory: %s" %(tmp))
-                    i += 1
-            else:
-                raise Exception("Invalid arguments: %s" %(arg))
-            i += 1
-        if lang == "" or directories == "":
-            raise Exception("Invalid -l or -d")
-    except Exception as e:
-        WARN(" ".join(e.args))
-        ERRO("Invalid command: %s" % (" ".join(sys.argv)))
-
-    OK("moss %s %s %s" %(lang, base_files, directories))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

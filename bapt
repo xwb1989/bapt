@@ -186,14 +186,27 @@ if __name__ == "__main__":
 
     INFO("====================================  Pre-processing files ============================")
     for directory in args.directories:
-        for archive_file in [f for f in os.listdir(directory) if is_archive(f)]:
-            dest = os.path.join(directory, archive_file[:archive_file.find(".")])
-            file_path = os.path.join(directory, archive_file)
-            if not os.path.isdir(dest):
-                INFO("extracting files in %s" %(file_path))
-                extract_all(file_path, dest, args.lang, ["__MACOSX"])
-                INFO("shuffling files in %s" %(dest))
-                shuffle_all(dest, dest)
+        #Two passes: one for extracting archives, the other for shuffling files in directories
+
+        #Extraction procedure
+        for f in os.listdir(directory):
+            if is_archive(f):
+                archive_file = f
+                dest = os.path.join(directory, archive_file[:archive_file.find(".")])
+                file_path = os.path.join(directory, archive_file)
+                if not os.path.isdir(dest):
+                    INFO("extracting files in %s" %(file_path))
+                    extract_all(file_path, dest, args.lang, ["__MACOSX"])
+
+        #Shuffling procedure
+        #Have to go through another loop because result of os.listdir(dirctory) 
+        #might have been changed by extraction procedure
+        for f in os.listdir(directory):
+            file_path = os.path.join(directory, f)
+            if os.path.isdir(file_path):
+                INFO("shuffling files in %s" %(file_path))
+                shuffle_all(file_path, file_path)
+                
             
     OK("====================================  Pre-processing done ============================")
             
@@ -213,9 +226,6 @@ if __name__ == "__main__":
     INFO("Calling MOSS: ")
     INFO("\t" + moss)
     subprocess.call(moss, shell=True)
-
-
-
 
     OK("===================================   BAPT Done  ======================================")
 

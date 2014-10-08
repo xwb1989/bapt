@@ -109,10 +109,9 @@ function usage_info {
 }
 #========================================== Argument validation ===========
 
-
 #Welcome message 
-expected_argc=6
-if [[ $# -ne $expected_argc && $# -ne $((expected_argc-2)) ]]; then
+min_argc=4
+if [[ $# -le $min_argc ]]; then
     printf "Welcome to (B)randeis (A)nti-(P)lagiarism (S)uite.\n"
     printf "This tool is using MOSS from Stanford as plagiarism detection engine\n"
     printf "and adapted by Wenbin Xiao to automatically preprocess students assigments,\n"
@@ -122,7 +121,13 @@ if [[ $# -ne $expected_argc && $# -ne $((expected_argc-2)) ]]; then
     exit
 fi
 
-INFO "============================   Argument Validation   ==============================\n"
+INFO "============================   Argument Parsing   ==============================\n"
+directories="-d "
+base_files=""
+lang=""
+
+
+
 #Validate -f, -d and -l
 if [[ ($1 != "-f" && $1 != "-d") || $3 != "-l" || ($# -eq $expected_argc && $5 != "-b") ]]; then
     ERRO "unable to identify flags $1 or $3 or $5\n"
@@ -156,7 +161,7 @@ elif [[ $1 == "-d" ]]; then
     fi
 fi
 
-INFO "==========================   Argument Validation Done   ===============================\n"
+INFO "==========================   Argument Parsing Done   ===============================\n"
 
 INFO "==========================   MOSS Files Preparation   =================================\n"
 INFO "--------------------------   Unpacking and Extracting Files ---------------------------\n"

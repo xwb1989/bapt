@@ -1,0 +1,180 @@
+#!/usr/bin/python
+#File: bapt
+#Author: Wenbin Xiao
+#Date: 2014/10/07
+
+#========================================  imports  ====================================
+import sys
+import zipfile
+import tarfile
+import os
+import argparse
+
+
+#========================================  Config ======================================
+SUPPORT_LANG = ["java", "c", "py"]
+#========================================  utils  ======================================
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+
+    def disable(self):
+        self.HEADER = ''
+        self.OKBLUE = ''
+        self.OKGREEN = ''
+        self.WARNING = ''
+        self.FAIL = ''
+        self.ENDC = ''
+
+def INFO(str):
+    print(bcolors.HEADER + str + bcolors.ENDC)
+
+def OK(str):
+    print(bcolors.OKGREEN + str + bcolors.ENDC)
+
+def WARN(str):
+    print(bcolors.WARNING + str + bcolors.ENDC)
+
+def ERRO(str):
+    print(bcolors.FAIL + str + bcolors.ENDC)
+    sys.exit(1)
+
+def welcome():
+    print("Welcome to (B)randeis (A)nti-(P)lagiarism (T)ool.")
+    print("This tool is using MOSS from Stanford University as plagiarism detection engine")
+    print("and provides automatical files pre-process and configurations such that submitting")
+    print("the programming assignments of whole class(or with previous classes) can be done")
+    print("without much manual effort.\n")
+    print("If you have any question about this tool, please email the author:")
+    print("\t\tWenbin Xiao(wenbinx@brandeis.edu)")
+
+    
+def unextract_all(file_path, dest_path, file_types, ignore_list):
+    if tarfile.is_tarfile(file_path):
+        tar_ref = tarfile.Open(file_path)
+        tar_ref.getmembers()
+    elif zipfile.is_zipfile(file_path):
+        zip_ref = zipfile.ZipFile(file_path)
+        zip_ref.infolist()
+        pass
+    else:
+        WARN("Unable to identify the type of file: %s" % ( file_path ))
+    zip_ref = zipfile.ZipFile(file_path, 'r')
+    return true
+    
+#Validate the directories given by command line arguments
+class ValidDir(argparse.Action):
+    def __call__(self, parser, namespace, values, option_strings=None):
+        failed = False
+        if type(values) == list:
+            for p in values:
+                if not os.path.isdir(p):
+                    raise Exception("Invalid argument: %s" %(p))
+        else:
+            if not os.path.isdir(values):
+                raise Exception("Invalid argument: %s" %(values))
+        setattr(namespace, self.dest, values)
+        
+
+#====================================== Main logic ====================================
+if __name__ == "__main__":
+
+    welcome()
+    print
+    #create argument parser
+    parser = argparse.ArgumentParser(description="Parsing arguments for BAPT")
+    #add arguments
+    parser.add_argument("-l", required=True, 
+            nargs=1, dest="lang", 
+            help="the language of the submission files")
+    parser.add_argument("-b", required=False, 
+            nargs='?', dest="base_files", action=ValidDir,
+            help="the directory of base files")
+    parser.add_argument("-d", required=True, 
+            nargs='+', dest="directories", action=ValidDir,
+            help="directories of submission files")
+    try:
+        args = parser.parse_args()
+    except Exception as e:
+        WARN(" ".join(e.args))
+        ERRO("Invalid command: %s" %(" ".join(sys.argv)))
+    sys.exit(0)
+
+
+
+    min_argc = 4
+
+
+
+    
+
+
+    #MOSS arguments
+    directories = ""
+    lang = ""
+    base_files = ""
+    i = 1
+    try:
+        while i < len(sys.argv):
+            arg = sys.argv[i]
+            if arg == "-l":
+                lang = "-l"
+                i += 1
+                tmp = sys.argv[i]
+                if tmp in SUPPORT_LANG:
+                    lang = lang + " " + tmp
+                else:
+                    raise Exception("Invalid language: %s" %(tmp))
+            elif arg == "-b":
+                base_files = "-b"
+                i += 1
+                tmp = sys.argv[i]
+                if os.path.isdir(tmp):
+                    base_files = base_files + " " + tmp
+                else:
+                    raise Exception("Invalid base file directory: %s" %(tmp))
+            elif arg == "-d":
+                directories = "-d"
+                i += 1
+                while i < len(sys.argv):
+                    tmp = sys.argv[i]
+                    if os.path.isdir(tmp):
+                        directories = directories + " " + tmp
+                    else:
+                        raise Exception("Invalid directory: %s" %(tmp))
+                    i += 1
+            else:
+                raise Exception("Invalid arguments: %s" %(arg))
+            i += 1
+        if lang == "" or directories == "":
+            raise Exception("Invalid -l or -d")
+    except Exception as e:
+        WARN(" ".join(e.args))
+        ERRO("Invalid command: %s" % (" ".join(sys.argv)))
+
+    OK("moss %s %s %s" %(lang, base_files, directories))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

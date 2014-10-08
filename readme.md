@@ -36,7 +36,7 @@ Assuming you have a directory `source_dir` as following:
     source_dir/
     ├── Alice.tar
     │   ├── nested-archive.tar
-    |   |   |── file11.java
+    │   │   ├── file11.java
     │   │   └── file12.java
     │   ├── file1.java
     │   └── file2.java
@@ -45,7 +45,7 @@ Assuming you have a directory `source_dir` as following:
     │   └── file2.java
     └── James/
         ├── sub-dir/
-        |   └── file11.java
+        │   └── file11.java
         ├── file1.java
         └── file2.java
  
@@ -53,7 +53,7 @@ If you run command like:
 
     bapt -l java -b basefiles -d source_dir
 
-After pre-processing, it will becomes:
+After pre-processing, it becomes:
 
     source_dir/
     ├── Alice/

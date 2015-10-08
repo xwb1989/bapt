@@ -75,14 +75,17 @@ def match(s1, l1):
     
 #extract files in in-memory archive data
 def extract_data(f_name, f_data, dest, file_type, ignore_list):
-    if is_zip(f_name):
-        #crate ZipFile by passing a file-like object
-        extract_zip(zipfile.ZipFile(f_data), dest, file_type, ignore_list)
-    elif is_tar(f_name):
-        #create TarFile by passing fileobj
-        extract_tar(tarfile.open(fileobj=f_data), dest, file_type, ignore_list)
-    else:
-        WARN("unable to identify %s" %(f_name))
+    try:
+        if is_zip(f_name):
+            #create ZipFile by passing a file-like object
+            extract_zip(zipfile.ZipFile(f_data), dest, file_type, ignore_list)
+        elif is_tar(f_name):
+            #create TarFile by passing fileobj
+            extract_tar(tarfile.open(fileobj=f_data), dest, file_type, ignore_list)
+        else:
+            WARN("unable to identify %s" %(f_name))
+    except:
+        WARN("unable to extract the file %s" %(f_name))
 
 #recursively extract files in tar file
 def extract_tar(tar_file, dest, file_type, ignore_list):
@@ -223,6 +226,7 @@ if __name__ == "__main__":
             p = os.path.join(base_files_dir, f)
             moss += "-b " + p + " "
         moss += "-d " + directories
+    moss += " -f %s/*.%s" %(d, lang)
     INFO("Calling MOSS: ")
     INFO("\t" + moss)
     subprocess.call(moss, shell=True)
